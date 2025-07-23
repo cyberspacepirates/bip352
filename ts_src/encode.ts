@@ -19,15 +19,16 @@ export const encodeSilentPaymentAddress = (
 
   const data = bech32m.toWords(Buffer.concat([scanPubKey, spendPubKey]));
   data.unshift(version);
-
-  return bech32m.encode(hrpFromNetwork(network), data, 118);
+  // the character limit is 1023 character due to the recommendation for future updates
+  // it should work fine with just 117 characters
+  return bech32m.encode(hrpFromNetwork(network), data, 1023);
 };
 
 export const decodeSilentPaymentAddress = (
   address: string,
   network: Network = bitcoin
 ): { scanKey: Buffer; spendKey: Buffer } => {
-  const { prefix, words } = bech32m.decode(address, 118);
+  const { prefix, words } = bech32m.decode(address, 1023);
   if (prefix != hrpFromNetwork(network)) throw new Error("Invalid prefix!");
 
   const version = words.shift();
