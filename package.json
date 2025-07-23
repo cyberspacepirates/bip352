@@ -2,7 +2,8 @@
   "name": "bip352",
   "version": "0.1.0",
   "description": "The motive of this repository is the lack of support in the Javascript community for BIP 352 aka silent payments.",
-  "main": "index.js",
+  "main": "ts_src/index.ts",
+  "type": "module",
   "scripts": {
     "test": "jest"
   },
