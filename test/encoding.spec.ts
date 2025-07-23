@@ -5,6 +5,7 @@ import {
 } from "../ts_src/encode";
 import { Buffer } from "buffer";
 import { unlabelled, labelled } from "./fixtures/encoding";
+import { describe, it, expect } from "vitest";
 
 describe("Encoding", () => {
   describe.each(unlabelled)("Encode/Decode SP", (data) => {
