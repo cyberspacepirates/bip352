@@ -1,32 +1,32 @@
 import { Outpoint, PrivateKey } from "./interface";
 import secp256k1 from "secp256k1";
-import createHash from "create-hash";
 import { Buffer } from "buffer";
+import crypto from "crypto";
 
 export const createInputHash = (
   sumOfInputPublicKeys: Buffer,
   outpoint: Outpoint
 ): Buffer => {
-  return createTaggedHash(
-    "BIP0352/Inputs",
-    Buffer.concat([
+  return Buffer.from(
+    createTaggedHash(
+      "BIP0352/Inputs",
       Buffer.concat([
-        Buffer.from(outpoint.txid, "hex").reverse(),
-        serialiseUint32LE(outpoint.vout),
-      ]),
-      sumOfInputPublicKeys,
-    ])
+        Buffer.concat([
+          Buffer.from(outpoint.txid, "hex").reverse(),
+          serialiseUint32LE(outpoint.vout),
+        ]),
+        sumOfInputPublicKeys,
+      ])
+    )
   );
 };
 
-export const createTaggedHash = (tag: string, buffer: Buffer): Buffer => {
-  const tagHash = createHash("sha256").update(tag, "utf8").digest();
-  return createHash("sha256")
-    .update(tagHash)
-    .update(tagHash)
-    .update(buffer)
-    .digest();
-};
+export function createTaggedHash(tag: string, data: Uint8Array): Uint8Array {
+  const hash = crypto.createHash("sha256");
+  const tagHash = hash.update(tag, "utf-8").digest();
+  const ss = Buffer.concat([tagHash, tagHash, data]) as Uint8Array;
+  return crypto.createHash("sha256").update(ss).digest();
+}
 
 export const calculateSumOfPrivateKeys = (keys: PrivateKey[]): Buffer => {
   const negatedKeys = keys.map((key) => {
