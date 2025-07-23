@@ -67,6 +67,6 @@ export const createLabeledSilentPaymentAddress = (
   );
 };
 
-const hrpFromNetwork = (network: Network): string => {
+export const hrpFromNetwork = (network: Network): string => {
   return network.bech32 === "bc" ? "sp" : "tsp";
 };
