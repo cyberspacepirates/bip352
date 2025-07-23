@@ -28,6 +28,8 @@
   },
   "dependencies": {
     "@noble/secp256k1": "1.6.3",
+    "bip32": "^4.0.0",
+    "bip39": "^3.1.0",
     "bitcoinjs-lib": "^6.1.7",
     "create-hash": "^1.2.0",
     "ecpair": "^3.0.0",
