@@ -4,7 +4,7 @@
   "description": "The motive of this repository is the lack of support in the Javascript community for BIP 352 aka silent payments.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "keywords": [
     "bip352",
@@ -20,8 +20,17 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@types/create-hash": "^1.2.6",
     "@types/jest": "^30.0.0",
+    "@types/secp256k1": "^4.0.6",
     "jest": "^30.0.5",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "bitcoinjs-lib": "^6.1.7",
+    "create-hash": "^1.2.0",
+    "secp256k1": "^5.0.1"
   }
 }
