@@ -1,6 +1,8 @@
 # gitignore file copied from:
 # https://gist.github.com/ericelliott/a9c8e7810d94fdd90993e30552674244?permalink_comment_id=3419457#gistcomment-3419457
 
+experiments/
+
 # Logs
 logs
 *.log
