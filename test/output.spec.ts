@@ -5,13 +5,13 @@ import {
   _ser32,
   addressToPubkey,
   createTransaction,
-  isPaymentCodeValid,
   pubkeyToAddress,
 } from "../ts_src/output";
 import * as ecc from "tiny-secp256k1";
 import { describe, it, expect } from "vitest";
 
 import { uint8ArrayToHex } from "uint8array-extras";
+import { isPaymentCodeValid } from "../ts_src";
 
 const ECPair = ECPairFactory(ecc);
 

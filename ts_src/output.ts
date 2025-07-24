@@ -3,6 +3,7 @@ import { bech32m } from "bech32";
 import * as bitcoin from "bitcoinjs-lib";
 import * as ecc from "@noble/secp256k1";
 import secp from "secp256k1";
+import { UTXO, Target, SilentPaymentGroup } from "./interface";
 
 import {
   compareUint8Arrays,
@@ -10,38 +11,13 @@ import {
   hexToUint8Array,
   uint8ArrayToHex,
 } from "uint8array-extras";
+
 import * as becc from "tiny-secp256k1";
 import { createTaggedHash } from "./utility";
 import { decodeSilentPaymentAddress, hrpFromNetwork } from "./encode";
 
 const ECPair = ECPairFactory(becc);
 bitcoin.initEccLib(becc);
-
-export type UTXOType =
-  | "p2wpkh"
-  | "p2sh-p2wpkh"
-  | "p2pkh"
-  | "p2tr"
-  | "non-eligible";
-
-export type UTXO = {
-  txid: string;
-  vout: number;
-  wif: string;
-  utxoType: UTXOType;
-  value?: number;
-  witnessUtxo?: object;
-};
-
-export type Target = {
-  address?: string; // either address or payment code
-  value?: number;
-};
-
-export type SilentPaymentGroup = {
-  Bscan: Uint8Array;
-  BmValues: Array<[Uint8Array, number | undefined, number]>;
-};
 
 export function createTransaction(
   utxos: UTXO[],
@@ -217,20 +193,6 @@ function _sumPrivkeys(utxos: UTXO[]): Uint8Array {
   });
 
   return ret;
-}
-
-export function isPaymentCodeValid(pc: string) {
-  try {
-    const result = bech32m.decode(pc, 118);
-    const version = result.words.shift();
-    if (version !== 0) {
-      return false;
-    }
-  } catch (_) {
-    return false;
-  }
-
-  return true;
 }
 
 export function pubkeyToAddress(
