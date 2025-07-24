@@ -75,12 +75,10 @@ export function isPaymentCodeValid(pc: string) {
   try {
     const result = bech32m.decode(pc, 118);
     const version = result.words.shift();
-    if (version !== 0) {
-      return false;
-    }
+
+    // if the version is 0, returns true, else false
+    return version === 0;
   } catch (_) {
     return false;
   }
-
-  return true;
 }
