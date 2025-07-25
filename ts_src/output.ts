@@ -112,7 +112,6 @@ export function _outpointsHash(parameters: UTXO[], A: Uint8Array): Uint8Array {
     const txidBuffer = hexToUint8Array(parameter.txid).reverse();
     const voutBuffer = new Uint8Array(_ser32(parameter.vout).reverse());
     outpoints.push(concatUint8Arrays([txidBuffer, voutBuffer]));
-    //outpoints.push(new Uint8Array([...txidBuffer, ...voutBuffer]));
   }
   outpoints.sort((a, b) => compareUint8Arrays(a, b));
   const smallest_outpoint = outpoints[0];
