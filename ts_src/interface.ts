@@ -19,6 +19,8 @@ export type Target = {
   value?: number;
 };
 
+export type LabelMap = { [key: string]: string };
+
 export type SilentPaymentGroup = {
   Bscan: Uint8Array;
   BmValues: Array<[Uint8Array, number | undefined, number]>;
