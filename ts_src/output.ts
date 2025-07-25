@@ -1,9 +1,8 @@
 import { ECPairFactory } from "ecpair";
-import { bech32m } from "bech32";
 import * as bitcoin from "bitcoinjs-lib";
-import * as ecc from "@noble/secp256k1";
-import secp from "secp256k1";
 import { UTXO, Target, SilentPaymentGroup } from "./interface";
+
+import secp256k1 from "./noble_ecc";
 
 import {
   compareUint8Arrays,
@@ -12,12 +11,11 @@ import {
   uint8ArrayToHex,
 } from "uint8array-extras";
 
-import * as becc from "tiny-secp256k1";
 import { createTaggedHash } from "./utility";
 import { decodeSilentPaymentAddress, hrpFromNetwork } from "./encode";
 
-const ECPair = ECPairFactory(becc);
-bitcoin.initEccLib(becc);
+const ECPair = ECPairFactory(secp256k1);
+bitcoin.initEccLib(secp256k1);
 
 export function createTransaction(
   utxos: UTXO[],
@@ -58,21 +56,20 @@ export function createTransaction(
   if (silentPaymentGroups.length === 0) return ret; // passthrough
 
   const a = _sumPrivkeys(utxos);
-  // Get X and Y coordinate, public key, form the private key a
 
-  const A = new Uint8Array(ecc.getPublicKey(a, true));
+  // Get X and Y coordinate, public key, form the private key a
+  const A = new Uint8Array(secp256k1.pointFromScalar(a, true)!);
   const outpoint_hash = _outpointsHash(utxos, A);
 
   // Generating Pmk for each Bm in the group
   for (const group of silentPaymentGroups) {
     // Bscan * a * outpoint_hash
-
     const ecdh_shared_secret_step1 = new Uint8Array(
-      secp.privateKeyTweakMul(a, outpoint_hash)
+      secp256k1.privateMultiply(a, outpoint_hash)!
     );
 
     const ecdh_shared_secret = new Uint8Array(
-      ecc.getSharedSecret(
+      secp256k1.getSharedSecret(
         ecdh_shared_secret_step1 as Uint8Array,
         group.Bscan as Uint8Array,
         true
@@ -87,11 +84,10 @@ export function createTransaction(
       );
 
       // Let Pmk = tk·G + Bm
-
       const Pmk = new Uint8Array(
-        becc.pointAdd(
+        secp256k1.pointAdd(
           Bm,
-          becc.pointFromScalar(tk as Uint8Array, true)!,
+          secp256k1.pointFromScalar(tk, true)!,
           true
         ) as Uint8Array
       );
@@ -104,7 +100,7 @@ export function createTransaction(
       const newTarget: Target = { address };
       newTarget.value = amount;
       ret[i] = newTarget;
-      k += 1;
+      k = k + 1;
     }
   }
   return ret;
@@ -115,7 +111,8 @@ export function _outpointsHash(parameters: UTXO[], A: Uint8Array): Uint8Array {
   for (const parameter of parameters) {
     const txidBuffer = hexToUint8Array(parameter.txid).reverse();
     const voutBuffer = new Uint8Array(_ser32(parameter.vout).reverse());
-    outpoints.push(new Uint8Array([...txidBuffer, ...voutBuffer]));
+    outpoints.push(concatUint8Arrays([txidBuffer, voutBuffer]));
+    //outpoints.push(new Uint8Array([...txidBuffer, ...voutBuffer]));
   }
   outpoints.sort((a, b) => compareUint8Arrays(a, b));
   const smallest_outpoint = outpoints[0];
@@ -153,7 +150,7 @@ function _sumPrivkeys(utxos: UTXO[]): Uint8Array {
 
   const keys: Array<Uint8Array> = [];
   for (const utxo of utxos) {
-    let key = ECPair.fromWIF(utxo.wif).privateKey!;
+    let key = ECPair.fromWIF(utxo.wif).privateKey as Uint8Array;
     switch (utxo.utxoType) {
       case "non-eligible":
         // Non-eligible UTXOs can be spent in the transaction, but are not used for the
@@ -168,9 +165,8 @@ function _sumPrivkeys(utxos: UTXO[]): Uint8Array {
         }
 
         // For taproot, check if the seckey results in an odd y-value and negate if so
-        if (ecc.getPublicKey(key)![0] === 0x03) {
-          //@ts-ignore
-          key = new Uint8Array(ecc.utils.privateNegate(key));
+        if (secp256k1.pointFromScalar(key, true)![0] === 0x03) {
+          key = new Uint8Array(secp256k1.privateNegate(key)) as Uint8Array;
         }
       case "p2wpkh":
       case "p2sh-p2wpkh":
@@ -189,7 +185,7 @@ function _sumPrivkeys(utxos: UTXO[]): Uint8Array {
 
   // summary of every item in array
   const ret = keys.reduce((acc, key) => {
-    return new Uint8Array(ecc.utils.privateAdd(acc, key) as Uint8Array);
+    return new Uint8Array(secp256k1.privateAdd(acc, key) as Uint8Array);
   });
 
   return ret;

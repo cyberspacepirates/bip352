@@ -9,9 +9,11 @@ import {
 } from "../ts_src/output";
 import * as ecc from "tiny-secp256k1";
 import { describe, it, expect } from "vitest";
-
-import { uint8ArrayToHex } from "uint8array-extras";
+import { hexToUint8Array, uint8ArrayToHex } from "uint8array-extras";
 import { isPaymentCodeValid } from "../ts_src";
+import jsonInputs from "./fixtures/output";
+import { UTXOType } from "../ts_src/interface";
+import { getUTXOType } from "./util";
 
 const ECPair = ECPairFactory(ecc);
 
@@ -44,6 +46,54 @@ type TestCase = {
 
 it("smoke test", () => {
   assert.deepStrictEqual(createTransaction([], []), []);
+});
+
+const tests = jsonInputs;
+
+/* Sending tests from the BIP352 test vectors */
+tests.forEach((testCase, index) => {
+  // Prepare the 'inputs' array
+  testCase.sending.forEach((sending) => {
+    const utxos = sending.given.vin.map((input) => ({
+      txid: input.txid,
+      vout: input.vout,
+      wif: ECPair.fromPrivateKey(Buffer.from(input.private_key, "hex")).toWIF(),
+      utxoType: getUTXOType(input) as UTXOType,
+    }));
+    const noEligibleUtxos = utxos.every(
+      (utxo) => utxo.utxoType === "non-eligible"
+    );
+
+    // Prepare the 'recipients' array
+    const recipients = sending.given.recipients.map((recipient) => ({
+      address: recipient,
+      value: 1,
+    }));
+
+    it(`Test Case: ${testCase.comment}`, () => {
+      if (noEligibleUtxos) {
+        expect(() => {
+          createTransaction(utxos, recipients);
+        }).toThrow("No eligible UTXOs with private keys found");
+      } else {
+        const generated = createTransaction(utxos, recipients);
+        const generated_pubkeys: string[] = generated
+          .map((obj) => addressToPubkey(String(obj.address)))
+          .filter(Boolean) as string[];
+        const result = matchSubset(generated_pubkeys, sending.expected.outputs);
+        if (!result) {
+          console.log(
+            testCase.comment,
+            "\n",
+            generated_pubkeys,
+            sending.expected.outputs
+          );
+        }
+
+        assert(result);
+      }
+    });
+  });
 });
 
 it("2 inputs - 0 SP outputs (just a passthrough)", () => {
