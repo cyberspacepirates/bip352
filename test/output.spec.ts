@@ -2,7 +2,6 @@ import { ECPairFactory } from "ecpair";
 import assert from "node:assert";
 import {
   _outpointsHash,
-  _ser32,
   addressToPubkey,
   createTransaction,
   pubkeyToAddress,
@@ -14,6 +13,7 @@ import { isPaymentCodeValid } from "../ts_src";
 import jsonInputs from "./fixtures/output";
 import { UTXOType } from "../ts_src/interface";
 import { getUTXOType } from "./util";
+import { _ser32 } from "../ts_src/utility";
 
 const ECPair = ECPairFactory(ecc);
 

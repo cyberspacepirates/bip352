@@ -1,7 +1,6 @@
 import { ECPairFactory } from "ecpair";
 import * as bitcoin from "bitcoinjs-lib";
 import { UTXO, Target, SilentPaymentGroup } from "./interface";
-
 import secp256k1 from "./noble_ecc";
 
 import {
@@ -11,7 +10,7 @@ import {
   uint8ArrayToHex,
 } from "uint8array-extras";
 
-import { createTaggedHash } from "./utility";
+import { _ser32, createTaggedHash } from "./utility";
 import { decodeSilentPaymentAddress, hrpFromNetwork } from "./encode";
 
 const ECPair = ECPairFactory(secp256k1);
@@ -119,21 +118,6 @@ export function _outpointsHash(parameters: UTXO[], A: Uint8Array): Uint8Array {
     "BIP0352/Inputs",
     concatUint8Arrays([smallest_outpoint, A])
   );
-}
-
-/**
- * Serializes a 32-bit unsigned integer i as a 4-byte big-endian
- * @param i {number} The number to serialize
- * @returns {Uint8Array} The serialized number
- * @private
- * */
-export function _ser32(i: number): Uint8Array {
-  const returnValue = new Uint8Array(4);
-  returnValue[0] = (i >> 24) & 0xff;
-  returnValue[1] = (i >> 16) & 0xff;
-  returnValue[2] = (i >> 8) & 0xff;
-  returnValue[3] = i & 0xff;
-  return returnValue;
 }
 
 /**

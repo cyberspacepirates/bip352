@@ -1,4 +1,4 @@
-import { createTaggedHash, serialiseUint32 } from "./utility";
+import { _ser32, createTaggedHash } from "./utility";
 import { LabelMap } from "./interface";
 import secp256k1 from "./noble_ecc";
 import { Buffer } from "buffer";
@@ -77,7 +77,7 @@ export function scanOutputsUsingSecret(
   do {
     const tweak = createTaggedHash(
       "BIP0352/SharedSecret",
-      Buffer.concat([ecdhSecret, serialiseUint32(n)])
+      Buffer.concat([ecdhSecret, _ser32(n)])
     );
     counterIncrement = processTweak(
       spendPublicKey,

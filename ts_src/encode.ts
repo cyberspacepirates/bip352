@@ -3,7 +3,7 @@ import secp256k1 from "secp256k1";
 import { Buffer } from "buffer";
 import { Network } from "bitcoinjs-lib";
 import { bitcoin } from "bitcoinjs-lib/src/networks";
-import { createTaggedHash, serialiseUint32 } from "./utility";
+import { _ser32, createTaggedHash } from "./utility";
 
 export const encodeSilentPaymentAddress = (
   scanPubKey: Uint8Array,
@@ -51,7 +51,7 @@ export const createLabeledSilentPaymentAddress = (
 ) => {
   const label = createTaggedHash(
     "BIP0352/Label",
-    Buffer.concat([scanPrivKey, serialiseUint32(m)])
+    Buffer.concat([scanPrivKey, _ser32(m)])
   );
   const scanPubKey = secp256k1.publicKeyCreate(scanPrivKey);
   const tweakedSpendPubKey = secp256k1.publicKeyTweakAdd(

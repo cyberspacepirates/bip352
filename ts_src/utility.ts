@@ -47,11 +47,20 @@ export const calculateSumOfPrivateKeys = (keys: PrivateKey[]): Buffer => {
   );
 };
 
-export const serialiseUint32 = (n: number): Buffer => {
-  const buf = Buffer.alloc(4);
-  buf.writeUInt32BE(n);
-  return buf;
-};
+/**
+ * Serializes a 32-bit unsigned integer i as a 4-byte big-endian
+ * @param i {number} The number to serialize
+ * @returns {Uint8Array} The serialized number
+ * @private
+ * */
+export function _ser32(i: number): Uint8Array {
+  const returnValue = new Uint8Array(4);
+  returnValue[0] = (i >> 24) & 0xff;
+  returnValue[1] = (i >> 16) & 0xff;
+  returnValue[2] = (i >> 8) & 0xff;
+  returnValue[3] = i & 0xff;
+  return returnValue;
+}
 
 const serialiseUint32LE = (n: number): Buffer => {
   const buf = Buffer.alloc(4);
