@@ -3,7 +3,6 @@ import { LabelMap } from "./interface";
 import secp256k1 from "./noble_ecc";
 import { Buffer } from "buffer";
 import { _outpointsHash } from "./output";
-import * as ecc from "secp256k1";
 
 // Handle additional label-related logic
 const handleLabels = (
@@ -12,20 +11,22 @@ const handleLabels = (
   tweak: Buffer,
   labels: LabelMap
 ): Uint8Array | null => {
-  const negatedPublicKey = ecc.publicKeyNegate(tweakedPublicKey, true);
+  const negatedPublicKey = secp256k1.publicKeyNegate(tweakedPublicKey, true);
 
-  let mG = ecc.publicKeyCombine([output, negatedPublicKey], true);
-  let labelHex = labels[Buffer.from(mG).toString("hex")];
+  let mG = secp256k1.pointAdd(output, negatedPublicKey, true);
+
+  let labelHex = labels[Buffer.from(mG!).toString("hex")];
   if (!labelHex) {
-    mG = ecc.publicKeyCombine(
-      [ecc.publicKeyNegate(output, true), negatedPublicKey],
+    mG = secp256k1.pointAdd(
+      secp256k1.publicKeyNegate(output, true),
+      negatedPublicKey,
       true
     );
-    labelHex = labels[Buffer.from(mG).toString("hex")];
+    labelHex = labels[Buffer.from(mG!).toString("hex")];
   }
 
   if (labelHex) {
-    return ecc.privateKeyTweakAdd(tweak, Buffer.from(labelHex, "hex"));
+    return secp256k1.privateAdd(tweak, Buffer.from(labelHex, "hex"));
   }
 
   return null;
@@ -38,12 +39,17 @@ const processTweak = (
   matches: Map<string, Buffer>,
   labels?: LabelMap
 ): number => {
-  const tweakedPublicKey = ecc.publicKeyTweakAdd(spendPublicKey, tweak, true);
+  const tweakedPublicKey = secp256k1.pointAddScalar(
+    spendPublicKey,
+    tweak,
+    true
+  );
+  //const tweakedPublicKey = ecc.publicKeyTweakAdd(spendPublicKey, tweak, true);
 
   for (let i = 0; i < outputs.length; i++) {
     const output = outputs[i];
 
-    if (output.subarray(1).equals(tweakedPublicKey.subarray(1))) {
+    if (output.subarray(1).equals(tweakedPublicKey!.subarray(1))) {
       matches.set(output.toString("hex"), tweak);
       outputs.splice(i, 1);
       return 1; // Increment counter
@@ -51,7 +57,7 @@ const processTweak = (
       // Additional logic if labels are provided
       const privateKeyTweak = handleLabels(
         output,
-        tweakedPublicKey,
+        tweakedPublicKey!,
         tweak,
         labels
       );
@@ -139,9 +145,9 @@ export const scanOutputs = (
   outputs: Buffer[],
   labels?: LabelMap
 ): Map<string, Buffer> => {
-  const ecdhSecret = ecc.publicKeyTweakMul(
+  const ecdhSecret = secp256k1.getSharedSecret(
+    secp256k1.privateMultiply(scanPrivateKey, inputHash)!,
     sumOfInputPublicKeys,
-    ecc.privateKeyTweakMul(scanPrivateKey, inputHash),
     true
   );
 
@@ -157,8 +163,8 @@ export const scanOutputsWithTweak = (
 ): Map<string, Buffer> => {
   if (scanTweak.length === 33) {
     // Use publicKeyTweakMul for compressed pubkey
-    const ecdhSecret = ecc.publicKeyTweakMul(scanTweak, scanPrivateKey, true);
-    return scanOutputsUsingSecret(ecdhSecret, spendPublicKey, outputs, labels);
+    const ecdhSecret = secp256k1.pointMultiply(scanTweak, scanPrivateKey, true);
+    return scanOutputsUsingSecret(ecdhSecret!, spendPublicKey, outputs, labels);
   } else {
     throw new Error(
       `Expected scanTweak to be either 33-byte compressed public key, got ${scanTweak.length}`

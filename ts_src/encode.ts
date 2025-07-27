@@ -1,5 +1,5 @@
 import { bech32m } from "bech32";
-import secp256k1 from "secp256k1";
+import secp256k1 from "./noble_ecc";
 import { Buffer } from "buffer";
 import { Network } from "bitcoinjs-lib";
 import { bitcoin } from "bitcoinjs-lib/src/networks";
@@ -53,15 +53,12 @@ export const createLabeledSilentPaymentAddress = (
     "BIP0352/Label",
     Buffer.concat([scanPrivKey, _ser32(m)])
   );
-  const scanPubKey = secp256k1.publicKeyCreate(scanPrivKey);
-  const tweakedSpendPubKey = secp256k1.publicKeyTweakAdd(
-    spendPubKey,
-    label,
-    true
-  );
+  const scanPubKey = secp256k1.pointFromScalar(scanPrivKey);
+  const tweakedSpendPubKey = secp256k1.pointAddScalar(spendPubKey, label, true);
+
   return encodeSilentPaymentAddress(
-    scanPubKey,
-    tweakedSpendPubKey,
+    scanPubKey!,
+    tweakedSpendPubKey!,
     network,
     version
   );

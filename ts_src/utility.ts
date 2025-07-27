@@ -28,25 +28,6 @@ export function createTaggedHash(tag: string, data: Uint8Array): Uint8Array {
   return crypto.createHash("sha256").update(ss).digest();
 }
 
-export const calculateSumOfPrivateKeys = (keys: PrivateKey[]): Buffer => {
-  const negatedKeys = keys.map((key) => {
-    const privateKey = Buffer.from(key.key, "hex");
-    if (
-      key.isXOnly &&
-      secp256k1.publicKeyCreate(privateKey, true)[0] === 0x03
-    ) {
-      return secp256k1.privateKeyNegate(privateKey);
-    }
-    return privateKey;
-  });
-
-  return Buffer.from(
-    negatedKeys.slice(1).reduce((acc, key) => {
-      return secp256k1.privateKeyTweakAdd(acc, key);
-    }, negatedKeys[0])
-  );
-};
-
 /**
  * Serializes a 32-bit unsigned integer i as a 4-byte big-endian
  * @param i {number} The number to serialize

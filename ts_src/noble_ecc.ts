@@ -12,6 +12,7 @@
 import createHash from "create-hash";
 import { createHmac } from "crypto";
 import * as necc from "@noble/secp256k1";
+import { publicKeyNegate } from "secp256k1";
 
 necc.utils.sha256Sync = (...messages: Uint8Array[]): Uint8Array => {
   const sha256 = createHash("sha256");
@@ -53,6 +54,10 @@ const ecc = {
     return necc.utils.isValidPrivateKey(d);
   },
   isXOnlyPoint: (p: Uint8Array): boolean => isPoint(p, true),
+
+  publicKeyNegate(publicKey: Uint8Array, compressed = false) {
+    return publicKeyNegate(publicKey, compressed);
+  },
 
   xOnlyPointAddTweak: (
     p: Uint8Array,
