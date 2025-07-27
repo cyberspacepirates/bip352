@@ -60,13 +60,13 @@ export function createTransaction(
   const A = new Uint8Array(secp256k1.pointFromScalar(a, true)!);
   const outpoint_hash = _outpointsHash(utxos, A);
 
+  // Bscan * a * outpoint_hash
+  const ecdh_shared_secret_step1 = new Uint8Array(
+    secp256k1.privateMultiply(a, outpoint_hash)!
+  );
+
   // Generating Pmk for each Bm in the group
   for (const group of silentPaymentGroups) {
-    // Bscan * a * outpoint_hash
-    const ecdh_shared_secret_step1 = new Uint8Array(
-      secp256k1.privateMultiply(a, outpoint_hash)!
-    );
-
     const ecdh_shared_secret = new Uint8Array(
       secp256k1.getSharedSecret(
         ecdh_shared_secret_step1 as Uint8Array,
@@ -74,7 +74,6 @@ export function createTransaction(
         true
       ) as Uint8Array
     );
-
     let k = 0;
     for (const [Bm, amount, i] of group.BmValues) {
       const tk = createTaggedHash(
@@ -104,8 +103,7 @@ export function createTransaction(
   }
   return ret;
 }
-
-export function _outpointsHash(parameters: UTXO[], A: Uint8Array): Uint8Array {
+export function getSmallestOuput(parameters: UTXO[]) {
   const outpoints: Array<Uint8Array> = [];
   for (const parameter of parameters) {
     const txidBuffer = hexToUint8Array(parameter.txid).reverse();
@@ -114,6 +112,12 @@ export function _outpointsHash(parameters: UTXO[], A: Uint8Array): Uint8Array {
   }
   outpoints.sort((a, b) => compareUint8Arrays(a, b));
   const smallest_outpoint = outpoints[0];
+  return smallest_outpoint;
+}
+
+export function _outpointsHash(parameters: UTXO[], A: Uint8Array): Uint8Array {
+  const smallest_outpoint = getSmallestOuput(parameters);
+
   return createTaggedHash(
     "BIP0352/Inputs",
     concatUint8Arrays([smallest_outpoint, A])
