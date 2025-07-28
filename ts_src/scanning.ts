@@ -1,8 +1,10 @@
-import { _ser32, createTaggedHash } from "./utility";
-import { LabelMap } from "./interface";
+import { _ser32, createTaggedHash, isP2tr } from "./utility";
+import { LabelMap, Target, UTXO, UTXOType } from "./interface";
 import secp256k1 from "./noble_ecc";
 import { Buffer } from "buffer";
 import { _outpointsHash } from "./output";
+import { concatUint8Arrays } from "uint8array-extras";
+import * as bitcoin from "bitcoinjs-lib";
 
 // Handle additional label-related logic
 const handleLabels = (
@@ -35,7 +37,7 @@ const handleLabels = (
 const processTweak = (
   spendPublicKey: Buffer,
   tweak: Buffer,
-  outputs: Buffer[],
+  outputs: Array<Buffer | null>,
   matches: Map<string, Buffer>,
   labels?: LabelMap
 ): number => {
@@ -44,10 +46,11 @@ const processTweak = (
     tweak,
     true
   );
-  //const tweakedPublicKey = ecc.publicKeyTweakAdd(spendPublicKey, tweak, true);
 
   for (let i = 0; i < outputs.length; i++) {
     const output = outputs[i];
+
+    if (!output) continue;
 
     if (output.subarray(1).equals(tweakedPublicKey!.subarray(1))) {
       matches.set(output.toString("hex"), tweak);
@@ -74,7 +77,7 @@ const processTweak = (
 export function scanOutputsUsingSecret(
   ecdhSecret: Uint8Array,
   spendPublicKey: Buffer,
-  outputs: Buffer[],
+  outputs: Array<Buffer | null>,
   labels?: LabelMap
 ): Map<string, Buffer> {
   const matches = new Map<string, Buffer>();
@@ -98,39 +101,65 @@ export function scanOutputsUsingSecret(
   return matches;
 }
 
-type TransactionInput = {
-  publicKey: Buffer;
+export type UTXOInput = {
+  publicKey: Uint8Array;
   txid: string;
   vout: number;
-  wif: null;
+  utxoType: UTXOType;
+};
+
+export const sumPublicKey: (pubs: UTXOInput[]) => Uint8Array = (
+  inputs: UTXOInput[]
+) => {
+  let publicKeySum: Uint8Array = new Uint8Array();
+
+  inputs.forEach((input: UTXOInput, i: number) => {
+    let key: Uint8Array = new Uint8Array();
+
+    switch (input.utxoType) {
+      case "p2tr":
+        key = concatUint8Arrays([new Uint8Array(2), input.publicKey]);
+      case "non-eligible":
+        break;
+      default:
+        key = input.publicKey;
+    }
+    if (i == 0) {
+      publicKeySum = input.publicKey;
+      return;
+    }
+    publicKeySum = secp256k1.pointAdd(publicKeySum, key)!;
+  });
+
+  return publicKeySum;
 };
 
 export const scanTransaction = (
   scanPrivateKey: Buffer,
   spendPublicKey: Buffer,
-  inputs: TransactionInput[],
-  outputs: Buffer[],
+  inputs: UTXOInput[],
+  recipients: Target[],
+  network = bitcoin.networks.bitcoin,
   labels?: LabelMap
 ) => {
-  let publicKeySum = null;
-  for (let i = 0; i < inputs.length; i++) {
-    if (i == 0) {
-      publicKeySum = inputs[0].publicKey;
-      continue;
-    }
-    publicKeySum = secp256k1.pointAdd(publicKeySum!, inputs[i].publicKey!);
-  }
+  const publicKeySum = sumPublicKey(inputs);
   //@ts-ignore
   const inputHash = _outpointsHash(inputs, publicKeySum);
+  let outputs: Array<Buffer | null> = [];
+  recipients.forEach((recipient) => {
+    const output = bitcoin.address.toOutputScript(recipient.address!, network);
+    if (isP2tr(output)) {
+      outputs.push(Buffer.concat([Buffer.from("02", "hex"), output.slice(2)]));
+      return;
+    }
+    //@ts-ignore
+    output.push(null);
+  });
 
-  console.log(
-    Buffer.from(inputHash).toString("hex"),
-    Buffer.from(publicKeySum!).toString("hex")
-  );
   return scanOutputs(
     scanPrivateKey,
     spendPublicKey,
-    publicKeySum as Buffer,
+    Buffer.from(publicKeySum!),
     inputHash as Buffer,
     outputs,
     labels
@@ -142,7 +171,7 @@ export const scanOutputs = (
   spendPublicKey: Buffer,
   sumOfInputPublicKeys: Buffer,
   inputHash: Buffer,
-  outputs: Buffer[],
+  outputs: Array<Buffer | null>,
   labels?: LabelMap
 ): Map<string, Buffer> => {
   const ecdhSecret = secp256k1.getSharedSecret(
@@ -158,7 +187,7 @@ export const scanOutputsWithTweak = (
   scanPrivateKey: Buffer,
   spendPublicKey: Buffer,
   scanTweak: Buffer,
-  outputs: Buffer[],
+  outputs: Array<Buffer | null>,
   labels?: LabelMap
 ): Map<string, Buffer> => {
   if (scanTweak.length === 33) {

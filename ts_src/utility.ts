@@ -76,3 +76,11 @@ export const isPubKey = (testVector: Buffer): boolean => {
     secp256k1.publicKeyVerify(testVector)
   );
 };
+
+export function isP2tr(spk: Buffer): boolean {
+  if (spk.length !== 34) {
+    return false;
+  }
+  // OP_1 OP_PUSHBYTES_32 <32 bytes>
+  return spk[0] === 0x51 && spk[1] === 0x20;
+}
