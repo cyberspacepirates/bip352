@@ -78,7 +78,7 @@ const silentOutput = silentPayment.createTransaction(inputs, output, {
 ## Scanning transaction
 
 ```ts
-const scanning = scanTransaction(
+const scanning = silentPayment.scanTransaction(
   scanKey.privateKey!,
   spendKey.publicKey,
   inputs, // should omit the WIF ofc
