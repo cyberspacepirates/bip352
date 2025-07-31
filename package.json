@@ -24,13 +24,13 @@
     "@types/secp256k1": "^4.0.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
+    "ecpair": "^2.1.0",
     "vitest": "^3.2.4"
   },
   "dependencies": {
     "@noble/secp256k1": "1.6.3",
     "bitcoinjs-lib": "^6.1.7",
     "create-hash": "^1.2.0",
-    "ecpair": "^2.1.0",
     "uint8array-extras": "^1.4.0"
   }
 }
